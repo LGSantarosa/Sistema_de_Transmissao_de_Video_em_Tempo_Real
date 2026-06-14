@@ -1,18 +1,32 @@
 import socket
 import struct
-
-CANAIS = {
-    1: "224.1.1.1",
-    2: "224.1.1.2",
-    3: "224.1.1.3",
-}
 PORTA = 5007
+PORTA_TCP = 5005
+IP_SERVIDOR = "127.0.0.1"
+
+
+def buscar_canais():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((IP_SERVIDOR, PORTA_TCP))
+    dados = b""
+    while True:
+        parte = sock.recv(1024)
+        if not parte:
+            break
+        dados += parte
+    sock.close()
+    canais = {}
+    for linha in dados.decode("utf-8").splitlines():
+        k, v = linha.split(",")
+        canais[int(k)] = v
+    return canais
 
 
 def main():
-    print("Canais disponiveis:", list(CANAIS.keys()))
+    canais = buscar_canais()
+    print("Canais disponiveis:", list(canais.keys()))
     canal = int(input("Escolha o canal que deseja assistir: "))
-    grupo = CANAIS[canal]
+    grupo = canais[canal]
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

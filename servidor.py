@@ -1,14 +1,14 @@
 import socket
 import threading
 import time
-
 CANAIS = {
     1: "224.1.1.1",
     2: "224.1.1.2",
     3: "224.1.1.3",
 }
 PORTA = 5007
-TTL = 2  # alcance dos pacotes na rede
+PORTA_TCP = 5005
+TTL = 2 
 
 
 def transmitir_canal(numero_canal, grupo):
@@ -24,8 +24,25 @@ def transmitir_canal(numero_canal, grupo):
         time.sleep(1)
 
 
+def servir_lista_canais():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(("", PORTA_TCP))
+    sock.listen()
+    print(f"[TCP] Aguardando clientes na porta {PORTA_TCP}...")
+    while True:
+        conn, endereco = sock.accept()
+        lista = "\n".join(f"{k},{v}" for k, v in CANAIS.items()).encode("utf-8")
+        conn.sendall(lista)
+        conn.close()
+        print(f"[TCP] Lista de canais enviada para {endereco[0]}")
+
+
 def main():
     print("Servidor de streaming iniciado. Canais ativos:", list(CANAIS.keys()))
+
+    threading.Thread(target=servir_lista_canais, daemon=True).start()
+
     for numero_canal, grupo in CANAIS.items():
         t = threading.Thread(target=transmitir_canal, args=(numero_canal, grupo), daemon=True)
         t.start()
